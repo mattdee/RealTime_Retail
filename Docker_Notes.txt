@@ -1,0 +1,78 @@
+#install docker on debian aka the beta cloud
+# Create the following file as root
+/etc/apt/sources.list.d/docker.list
+
+# Add the following entry depending on your version (lsb_release -a)
+# On Debian Wheezy
+deb https://apt.dockerproject.org/repo debian-wheezy main
+On Debian Jessie
+deb https://apt.dockerproject.org/repo debian-jessie main
+On Debian Stretch/Sid
+deb https://apt.dockerproject.org/repo debian-stretch main
+
+#update the repo
+sudo apt-get update
+
+#install docker
+sudo apt-get install -y --force-yes  docker-engine
+
+#start the docker service
+sudo service docker start
+
+#pull the docker image
+nohup sudo docker pull zoomdata/quickstart 
+
+
+#port map zoomdata to your port forwarding port
+sudo docker run -d -m=50g -p 8080:8080 -p 8443:8443 --name zd-qs --sig-proxy=false  zoomdata/quickstart:latest
+sudo docker run -d -p 8080:8080 -p 8443:8443 --name zd-qs --sig-proxy=false  zoomdata/quickstart:latest
+
+
+
+#start the docker image after
+sudo docker stop -t 2 zd-qs
+sudo docker start -a zd-qs -m=50g
+
+#connect url
+https://localhost:8443/zoomdata
+
+#Source connect string
+jdbc:mysql://<host>:3306/dw_demo
+
+#For example
+jdbc:mysql://ec2-54-198-198-248.compute-1.amazonaws.com:3306/dw_demo
+
+jdbc:mysql://ec2-54-198-198-248.compute-1.amazonaws.com:3306/velocius
+
+jdbc:mysql://ec2-52-87-215-208.compute-1.amazonaws.com:3306/phones
+
+
+jdbc:mysql://ec2-54-152-37-226.compute-1.amazonaws.com:3306/ingest
+
+
+
+jdbc:mysql://ec2-54-166-137-81.compute-1.amazonaws.com:3306/example
+
+
+
+#update yum in order to install stuff
+docker exec -it zd-qs sudo yum --assumeno update
+
+
+#install mongo tools & wget for zoomdata image
+docker exec -it zd-qs sudo yum install -y mongodb-org-shell mongodb-org-tools wget
+docker exec -it zd-qs sudo wget https://www.dropbox.com/s/aoymngnbm1x3bbc/retail.tar.gz 
+docker exec -it zd-qs sudo tar -zxvf retail.tar.gz
+
+#extract the mongodb dump
+docker exec -it zd-qs sudo tar -xvf retail/mongo_dump.tar
+
+#stop zoomdata running 
+docker exec -it zd-qs sudo kill -9 $(ps -ef | grep -i zoomdata | awk '{print $2}')
+
+#restore the mongodb
+#demo/memsql
+docker exec -it zd-qs bash retail/mongo_restore.sh
+
+#restart zoomdata application
+docker exec -it zd-qs nohup bash /opt/zoomdata/bin/docker-runner &
